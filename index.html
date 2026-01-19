@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dungeon Instruction Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <h1>Dungeon Instruction Game</h1>
+    <p class="subtitle">Type commands (one per line): F, L, R, STOP</p>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: Grid -->
+    <section class="panel">
+      <h2 class="panel-title">Grid</h2>
+      <div id="grid" class="grid">Grid placeholder</div>
+    </section>
+
+    <!-- RIGHT: Instructions -->
+    <section class="panel">
+      <h2 class="panel-title">Instructions</h2>
+
+      <div class="cmdpad">
+        <button id="cmdF" class="btn">Forward</button>
+        <button id="cmdL" class="btn">Turn Left</button>
+        <button id="cmdR" class="btn">Turn Right</button>
+        <button id="cmdSTOP" class="btn danger">STOP</button>
+      </div>
+
+      <label class="label" for="instructions">Program (one per line):</label>
+      <textarea
+        id="instructions"
+        class="textarea"
+        rows="10"
+        placeholder="F&#10;F&#10;L&#10;F&#10;STOP"
+      ></textarea>
+
+      <div class="buttons">
+        <button id="stepBtn" class="btn">Step</button>
+        <button id="runBtn" class="btn primary">Run</button>
+        <button id="resetBtn" class="btn">Reset</button>
+      </div>
+
+
+<div class="mode-line">Mode: <span id="modeIndicator">EDITING</span></div>
+<div id="status" class="status">Ready.</div>
+
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

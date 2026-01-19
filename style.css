@@ -1,0 +1,204 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #243244;
+  --accent: #22c55e;
+  --danger: #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: linear-gradient(180deg, var(--bg), #0b1220);
+  color: var(--text);
+  padding: 24px;
+}
+
+.topbar h1 {
+  margin: 0 0 6px 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  margin: 0 0 18px 0;
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.panel {
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.panel-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.grid {
+  width: 320px;
+  height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0b1220;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 6px;
+  padding: 10px;
+}
+
+.tile {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 160px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: var(--text);
+  padding: 10px;
+  line-height: 1.35;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: #334155;
+}
+
+.btn.primary {
+  border-color: rgba(34,197,94,0.6);
+}
+
+.btn.danger {
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.status {
+  border: 1px solid var(--border);
+  background: #0b1220;
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--muted);
+}
+
+.cmdpad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Phase 3: tile paint */
+.tile.wall {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.tile.goal {
+  background: rgba(34,197,94,0.18);
+  border-color: rgba(34,197,94,0.45);
+}
+
+.tile.start {
+  background: rgba(59,130,246,0.14);
+  border-color: rgba(59,130,246,0.35);
+}
+
+/* Phase 5: mode indicator */
+.mode-line {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+#modeIndicator {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Player token: arrow inside a shape */
+.tile.player {
+  position: relative;
+}
+
+.playerToken {
+  width: 70%;
+  height: 70%;
+  margin: auto;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.22);
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  display: grid;
+  place-items: center;
+}
+
+.playerToken .arrow {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+/* rotate the arrow based on facing */
+.playerToken.facing-n .arrow { transform: rotate(-90deg); }
+.playerToken.facing-e .arrow { transform: rotate(0deg); }
+.playerToken.facing-s .arrow { transform: rotate(90deg); }
+.playerToken.facing-w .arrow { transform: rotate(180deg); }
+
+/* Curriculum: hide Step button (all-or-none control) */
+#stepBtn { display: none; }
+
+/* Trail styling */
+.tile.trail {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.tile.trail.ghost {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.18);
+}
