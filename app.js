@@ -22,6 +22,18 @@ const cmdR = document.getElementById("cmdR");
 const cmdSTOP = document.getElementById("cmdSTOP");
 
 // ----------------
+// Level descriptions (FIX: must be global scope)
+// ----------------
+const LEVEL_DESCRIPTIONS = {
+  1: { title: "Intent Articulation", goal: "Reach the goal.", desc: "Plan a simple route." },
+  2: { title: "Instruction Precision", goal: "Be exact.", desc: "Small mistakes matter." },
+  3: { title: "Anticipation", goal: "Think ahead.", desc: "Triggers can change the map." },
+  4: { title: "Error Detection", goal: "Expect surprises.", desc: "Some hazards are hidden or fake." },
+  5: { title: "Iteration", goal: "Refine.", desc: "You’ll revise your plan." },
+  6: { title: "Evaluation", goal: "Choose wisely.", desc: "Shortest isn’t always safest." },
+};
+
+// ----------------
 // Level (6×6, 1..6 coords)
 // ----------------
 let level = {
@@ -29,7 +41,6 @@ let level = {
   startFacing: "N",
   goal: { row: 1, col: 6 },
   lava: [
-    // default layout (can be replaced by generator)
     { row: 5, col: 2 },
     { row: 4, col: 2 },
     { row: 3, col: 4 },
@@ -45,6 +56,7 @@ let player = {
   row: level.start.row,
   col: level.start.col,
   facing: level.startFacing,
+  hasKey: false,
 };
 
 // ----------------
@@ -83,8 +95,8 @@ function setMode(nextMode) {
 function parseProgram() {
   const lines = instructionsEl.value
     .split("\n")
-    .map(l => l.trim())
-    .filter(l => l.length > 0);
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   const parsed = [];
 
@@ -110,7 +122,7 @@ let timerId = null;
 
 // Trails
 let trailCurrent = new Set(); // "r,c"
-let trailGhost = new Set();   // "r,c"
+let trailGhost = new Set(); // "r,c"
 
 function keyOf(row, col) {
   return `${row},${col}`;
@@ -144,10 +156,6 @@ function isInsideGrid(row, col) {
   return row >= 1 && row <= 6 && col >= 1 && col <= 6;
 }
 
-function isLava(row, col) {
-  return level.lava.some(l => l.row === row && l.col === col);
-}
-
 // ----------------
 // Grid creation (once) + tileAt
 // ----------------
@@ -169,55 +177,69 @@ function tileAt(row, col) {
 }
 
 // ----------------
-// Paint level tiles (reusable)
+// Paint level tiles (single source of truth)
 // ----------------
 function renderStaticElements() {
-  gridEl.querySelectorAll(".tile").forEach(t => {
-    t.classList.remove("lava", "wall", "start", "goal", "trigger");
+  gridEl.querySelectorAll(".tile").forEach((t) => {
+    t.classList.remove("lava", "wall", "start", "goal", "trigger", "fake-goal", "key", "locked", "illusion");
   });
 
   // Paint triggers
   if (level.triggers) {
     level.triggers.forEach(({ row, col, active }) => {
-      if (active !== false) { // render if not yet consumed/deactivated
-        const t = tileAt(row, col);
-        if (t) t.classList.add("trigger");
+      if (active !== false) {
+        tileAt(row, col)?.classList.add("trigger");
       }
     });
   }
 
-  // Paint lava (add .wall too so it shows even if CSS lacks .lava)
+  // Paint lava (skip hidden)
   level.lava.forEach(({ row, col, hidden }) => {
-    if (hidden) return; // Skip hidden lava
-    const t = tileAt(row, col);
-    if (t) {
-      t.classList.add("lava");
-      t.classList.add("wall"); // fallback styling
-    }
+    if (hidden) return;
+    tileAt(row, col)?.classList.add("lava", "wall");
   });
 
+  // Paint Key (if exists and needed, and not yet collected)
+  if (level.needsKey && level.keyPos && !player.hasKey) {
+    tileAt(level.keyPos.row, level.keyPos.col)?.classList.add("key");
+  }
+
+  // Paint False Goals
+  if (level.falseGoals) {
+    level.falseGoals.forEach(({ row, col }) => {
+      tileAt(row, col)?.classList.add("goal", "fake-goal");
+    });
+  }
+
+  // Start
   tileAt(level.start.row, level.start.col)?.classList.add("start");
-  tileAt(level.goal.row, level.goal.col)?.classList.add("goal");
+
+  // Goal (locked if needsKey and key not collected)
+  const goalEl = tileAt(level.goal.row, level.goal.col);
+  if (goalEl) {
+    goalEl.classList.add("goal");
+    if (level.needsKey && !player.hasKey) goalEl.classList.add("locked");
+  }
 }
 
 // ----------------
 // Trails rendering
 // ----------------
 function clearTrailClasses() {
-  gridEl.querySelectorAll(".tile.trail").forEach(t => t.classList.remove("trail", "ghost"));
+  gridEl.querySelectorAll(".tile.trail").forEach((t) => t.classList.remove("trail", "ghost"));
 }
 
 function renderTrails() {
   clearTrailClasses();
 
   // ghost first (faded)
-  trailGhost.forEach(k => {
+  trailGhost.forEach((k) => {
     const [r, c] = k.split(",").map(Number);
     tileAt(r, c)?.classList.add("trail", "ghost");
   });
 
   // current on top (solid)
-  trailCurrent.forEach(k => {
+  trailCurrent.forEach((k) => {
     const [r, c] = k.split(",").map(Number);
     const t = tileAt(r, c);
     if (t) {
@@ -228,10 +250,10 @@ function renderTrails() {
 }
 
 // ----------------
-// Player rendering: arrow inside a shape
+// Player rendering
 // ----------------
 function clearPlayerRender() {
-  gridEl.querySelectorAll(".tile.player").forEach(t => {
+  gridEl.querySelectorAll(".tile.player").forEach((t) => {
     t.classList.remove("player");
     t.textContent = "";
   });
@@ -269,7 +291,7 @@ function resetToLevelStart({ clearProgram = true, clearTrails = true } = {}) {
     row: level.start.row,
     col: level.start.col,
     facing: level.startFacing,
-    hasKey: false // Reset key state
+    hasKey: false,
   };
 
   // Trails
@@ -280,12 +302,8 @@ function resetToLevelStart({ clearProgram = true, clearTrails = true } = {}) {
   }
 
   // Program state
-  if (clearProgram) {
-    instructionsEl.value = "";
-    clearProgramState();
-  } else {
-    clearProgramState();
-  }
+  if (clearProgram) instructionsEl.value = "";
+  clearProgramState();
 
   renderStaticElements();
   renderPlayer();
@@ -313,7 +331,6 @@ function step() {
   if (ip >= program.length) return { stop: "Out of instructions" };
 
   const cmd = program[ip];
-
   if (cmd === "STOP") return { stop: "Stopped by STOP" };
 
   if (cmd === "L") {
@@ -337,78 +354,72 @@ function step() {
       return { stop: `Stopped: Off-grid at (${next.row}, ${next.col})` };
     }
 
-    // Check specific lava object for 'hidden' property
-    const lavaTile = level.lava.find(l => l.row === next.row && l.col === next.col);
+    // Find lava object (might be hidden/fake)
+    const lavaTile = level.lava.find((l) => l.row === next.row && l.col === next.col);
 
     if (lavaTile) {
+      // Hidden mine: reveal then stop
       if (lavaTile.hidden) {
         lavaTile.hidden = false;
-
-        // Visually reveal
-        const t = tileAt(next.row, next.col);
-        if (t) {
-          t.classList.add("lava", "wall");
-        }
-
+        tileAt(next.row, next.col)?.classList.add("lava", "wall");
         return { stop: `Stopped: Hidden Mine hit at (${next.row}, ${next.col})` };
       }
 
-      // Check for Illusion (Fake Lava)
+      // Fake lava (illusion): allow movement, but reveal it
       if (lavaTile.fake) {
-        // Reveal it's safe!
         const t = tileAt(next.row, next.col);
         if (t) {
           t.classList.remove("lava");
           t.classList.add("illusion");
-          spawnParticles(t, ['#3b82f6', '#bfdbfe', '#ffffff'], 20); // Blue "safe" puff
+          spawnParticles(t, ["#3b82f6", "#bfdbfe", "#ffffff"], 20);
         }
-        console.log("Walked through illusion!");
-
-        // ALLOW MOVEMENT (Do not return stop)
       } else {
-        // Real Lava
+        // Real lava
         return { stop: `Stopped: Lava at (${next.row}, ${next.col})` };
       }
     }
 
-    // Check Triggers
+    // Triggers
     if (level.triggers) {
-      const trigger = level.triggers.find(t => t.row === next.row && t.col === next.col && t.active !== false);
+      const trigger = level.triggers.find(
+        (t) => t.row === next.row && t.col === next.col && t.active !== false
+      );
       if (trigger) {
-        trigger.active = false; // consume it
-        // Remove visual class
+        trigger.active = false;
         tileAt(trigger.row, trigger.col)?.classList.remove("trigger");
 
-        // Activate Trap: Add new lava
         if (trigger.addsLava) {
-          trigger.addsLava.forEach(pos => {
+          trigger.addsLava.forEach((pos) => {
             level.lava.push(pos);
-            // Animate appearance?
             const t = tileAt(pos.row, pos.col);
             if (t) {
               t.classList.add("lava", "wall");
-              spawnParticles(t, ['#f59e0b', '#7f1d1d'], 20); // Poof effect
+              spawnParticles(t, ["#f59e0b", "#7f1d1d"], 20);
             }
           });
-          console.log("Trap triggered! Lava added.");
         }
       }
     }
 
-    // Check False Goals
-    if (level.falseGoals && level.falseGoals.some(fg => fg.row === next.row && fg.col === next.col)) {
+    // False Goals
+    if (level.falseGoals && level.falseGoals.some((fg) => fg.row === next.row && fg.col === next.col)) {
       return { stop: `Stopped: Trap! False Goal at (${next.row}, ${next.col})` };
     }
 
-    // Check Key Collection
-    if (level.needsKey && !player.hasKey &&
-      level.keyPos && level.keyPos.row === next.row && level.keyPos.col === next.col) {
+    // Key collection
+    if (
+      level.needsKey &&
+      !player.hasKey &&
+      level.keyPos &&
+      level.keyPos.row === next.row &&
+      level.keyPos.col === next.col
+    ) {
       player.hasKey = true;
-      console.log("Key collected!");
-      renderStaticElements(); // Update visuals (hide key, unlock goal)
-      spawnParticles(tileAt(next.row, next.col), ['#fcd34d', '#fbbf24'], 30);
+      renderStaticElements();
+      spawnParticles(tileAt(next.row, next.col), ["#fcd34d", "#fbbf24"], 30);
     }
 
+    // Move
     player.row = next.row;
     player.col = next.col;
     ip++;
@@ -417,10 +428,9 @@ function step() {
     renderTrails();
     renderPlayer();
 
+    // Win check
     if (player.row === level.goal.row && player.col === level.goal.col) {
-      if (level.needsKey && !player.hasKey) {
-        return { stop: "Goal Locked! You need the Key 🗝️" };
-      }
+      if (level.needsKey && !player.hasKey) return { stop: "Goal Locked! You need the Key 🗝️" };
       return { stop: "Goal reached!" };
     }
 
@@ -458,15 +468,14 @@ function doOneStep() {
 
   if (outcome.stop) {
     statusEl.textContent = outcome.stop;
+
     if (outcome.stop === "Goal reached!") {
       triggerWinEffect();
     } else if (outcome.stop.includes("Lava") || outcome.stop.includes("Mine")) {
-      // Extract coords for fire effect
       const match = outcome.stop.match(/at \((\d+), (\d+)\)/);
-      if (match) {
-        triggerBurnEffect(Number(match[1]), Number(match[2]));
-      }
+      if (match) triggerBurnEffect(Number(match[1]), Number(match[2]));
     }
+
     clearProgramState();
     return { stop: true };
   }
@@ -480,20 +489,11 @@ function doOneStep() {
 // FX
 // ----------------
 function triggerWinEffect() {
-  const count = 60;
-  const colors = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#ffffff'];
-
-  // Find goal position to explode FROM
-  const goalTile = document.querySelector('.tile.goal');
-  spawnParticles(goalTile, colors, count);
+  spawnParticles(document.querySelector(".tile.goal"), ["#ef4444", "#22c55e", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#ffffff"], 60);
 }
 
 function triggerBurnEffect(r, c) {
-  const count = 40;
-  const colors = ['#f97316', '#ef4444', '#f59e0b', '#7f1d1d', '#374151']; // Fire & Smoke
-
-  const lavaTile = tileAt(r, c);
-  spawnParticles(lavaTile, colors, count);
+  spawnParticles(tileAt(r, c), ["#f97316", "#ef4444", "#f59e0b", "#7f1d1d", "#374151"], 40);
 }
 
 function spawnParticles(element, colors, count) {
@@ -507,22 +507,17 @@ function spawnParticles(element, colors, count) {
   }
 
   for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
-    p.classList.add('particle');
+    const p = document.createElement("div");
+    p.classList.add("particle");
     p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    p.style.left = startX + 'px';
-    p.style.top = startY + 'px';
+    p.style.left = startX + "px";
+    p.style.top = startY + "px";
 
-    // Random direction
     const angle = Math.random() * Math.PI * 2;
-    // Random distance (velocity)
     const velocity = 30 + Math.random() * 100;
 
-    const tx = Math.cos(angle) * velocity + 'px';
-    const ty = Math.sin(angle) * velocity + 'px';
-
-    p.style.setProperty('--tx', tx);
-    p.style.setProperty('--ty', ty);
+    p.style.setProperty("--tx", Math.cos(angle) * velocity + "px");
+    p.style.setProperty("--ty", Math.sin(angle) * velocity + "px");
 
     document.body.appendChild(p);
     setTimeout(() => p.remove(), 1000);
@@ -530,7 +525,7 @@ function spawnParticles(element, colors, count) {
 }
 
 // ----------------
-// Command pad (adds tokens to textarea)
+// Command pad
 // ----------------
 function appendCommand(token) {
   const current = instructionsEl.value.trimEnd();
@@ -549,12 +544,11 @@ instructionsEl.addEventListener("input", () => {
 });
 
 // ----------------
-// Step button (optional)
+// Step button
 // ----------------
 if (stepBtn) {
   stepBtn.addEventListener("click", () => {
     if (mode !== "EDITING") return;
-
     if (ip === 0) startNewRunTrail();
 
     setMode("RUNNING");
@@ -564,7 +558,7 @@ if (stepBtn) {
 }
 
 // ----------------
-// Run button: autoplay until stop
+// Run button: autoplay
 // ----------------
 runBtn.addEventListener("click", () => {
   if (mode !== "EDITING") return;
@@ -597,31 +591,20 @@ resetBtn.addEventListener("click", () => {
 const LEVEL_BANK = {
   1: [
     {
-      // Fail State 1: Intent articulation (Simple path, goal visible)
       start: { row: 6, col: 1 },
       startFacing: "N",
       goal: { row: 1, col: 6 },
-      lava: [
-        { row: 2, col: 5 },
-        { row: 3, col: 6 },
-        { row: 4, col: 4 },
-      ],
+      lava: [{ row: 2, col: 5 }, { row: 3, col: 6 }, { row: 4, col: 4 }],
     },
     {
-      // Fail State 1: Variation (The Blocked Start)
-      // Forces an immediate "Intent" check: "I can't just go forward."
       start: { row: 6, col: 3 },
       startFacing: "N",
       goal: { row: 1, col: 3 },
-      lava: [
-        { row: 5, col: 3 }, // Immediate block
-        { row: 3, col: 2 }, { row: 3, col: 4 },
-      ],
-    }
+      lava: [{ row: 5, col: 3 }, { row: 3, col: 2 }, { row: 3, col: 4 }],
+    },
   ],
   2: [
     {
-      // Fail State 2: Instruction Precision (The Zig-Zag)
       start: { row: 6, col: 2 },
       startFacing: "N",
       goal: { row: 1, col: 5 },
@@ -633,7 +616,6 @@ const LEVEL_BANK = {
       ],
     },
     {
-      // Fail State 2: Instruction Precision (The Winding Hall) - Variation
       start: { row: 6, col: 5 },
       startFacing: "N",
       goal: { row: 1, col: 2 },
@@ -644,31 +626,21 @@ const LEVEL_BANK = {
         { row: 3, col: 4 }, { row: 3, col: 6 },
         { row: 2, col: 2 }, { row: 2, col: 4 },
       ],
-    }
+    },
   ],
   3: [
     {
-      // Fail State 3: Anticipation & Visualization (The Trap)
-      // Stepping on (4,3) closes the path!
       start: { row: 6, col: 3 },
       startFacing: "N",
       goal: { row: 2, col: 3 },
       lava: [
         { row: 5, col: 2 }, { row: 5, col: 4 },
         { row: 4, col: 1 }, { row: 4, col: 5 },
-        // { row: 4, col: 3 } REMOVED: Now it's a trigger zone
         { row: 3, col: 2 }, { row: 3, col: 4 },
       ],
-      triggers: [
-        {
-          row: 4, col: 3,
-          addsLava: [{ row: 3, col: 3 }] // Blocks the goal directly in front!
-        }
-      ]
+      triggers: [{ row: 4, col: 3, addsLava: [{ row: 3, col: 3 }] }],
     },
     {
-      // Fail State 3: Variation (The Cul-de-sac)
-      // Looks wide open to the left, but it's a dead end.
       start: { row: 6, col: 3 },
       startFacing: "N",
       goal: { row: 1, col: 6 },
@@ -677,18 +649,11 @@ const LEVEL_BANK = {
         { row: 2, col: 3 }, { row: 2, col: 4 },
         { row: 4, col: 4 }, { row: 5, col: 4 },
       ],
-      triggers: [
-        // Trigger at start area that blocks the "easy" looking path later
-        {
-          row: 5, col: 3,
-          addsLava: [{ row: 6, col: 2 }] // Just a nuisance / warning behind you
-        }
-      ]
-    }
+      triggers: [{ row: 5, col: 3, addsLava: [{ row: 6, col: 2 }] }],
+    },
   ],
   4: [
     {
-      // Fail State 4: Error Detection (The Minefield)
       start: { row: 6, col: 1 },
       startFacing: "E",
       goal: { row: 1, col: 6 },
@@ -701,7 +666,6 @@ const LEVEL_BANK = {
       ],
     },
     {
-      // Fail State 4: Error Detection (The Scattered Path) - Variation
       start: { row: 6, col: 1 },
       startFacing: "N",
       goal: { row: 1, col: 6 },
@@ -712,11 +676,10 @@ const LEVEL_BANK = {
         { row: 2, col: 4, hidden: true }, { row: 2, col: 6 },
         { row: 1, col: 5 },
       ],
-    }
+    },
   ],
   5: [
     {
-      // Fail State 5: Iteration & Revision (The Spiral)
       start: { row: 6, col: 1 },
       startFacing: "N",
       goal: { row: 3, col: 3 },
@@ -729,43 +692,32 @@ const LEVEL_BANK = {
       ],
     },
     {
-      // Fail State 5: Variation (The Snake)
-      // Long path back and forth. Hard to get right in one go.
       start: { row: 6, col: 6 },
       startFacing: "N",
       goal: { row: 1, col: 1 },
       lava: [
         { row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 }, { row: 5, col: 5 },
         { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 }, { row: 3, col: 5 },
-        { row: 4, col: 1 }, { row: 2, col: 6 }, // Turn-arounds
+        { row: 4, col: 1 }, { row: 2, col: 6 },
       ],
-    }
+    },
   ],
   6: [
     {
-      // Fail State 6: Evaluation / Efficiency (Two Paths)
       start: { row: 6, col: 3 },
       startFacing: "N",
       goal: { row: 1, col: 3 },
-      lava: [
-        // Central column blocked mostly
-        { row: 5, col: 3 }, { row: 4, col: 3 }, { row: 2, col: 3 },
-        // Side obstacles
-        { row: 3, col: 2 }, { row: 3, col: 4 },
-      ],
+      lava: [{ row: 5, col: 3 }, { row: 4, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 2 }, { row: 3, col: 4 }],
     },
     {
-      // Fail State 6: Variation (Risk vs Safety)
-      // Left path: 3 steps but narrow gap. Right path: very wide but 10 steps.
       start: { row: 6, col: 3 },
       startFacing: "N",
       goal: { row: 3, col: 3 },
       lava: [
-        { row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 }, // Start box
-        { row: 4, col: 2 }, { row: 4, col: 4 }, // Gatekeepers
-        // No lava on cols 1 or 6, encouraging wide flank
+        { row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 },
+        { row: 4, col: 2 }, { row: 4, col: 4 },
       ],
-    }
+    },
   ],
 };
 
@@ -776,16 +728,12 @@ function isSolvable(lv) {
   const startKey = keyOf(lv.start.row, lv.start.col);
   const goalKey = keyOf(lv.goal.row, lv.goal.col);
 
-  // Don’t allow lava on start/goal
-  if (lv.lava.some(p => keyOf(p.row, p.col) === startKey)) return false;
-  if (lv.lava.some(p => keyOf(p.row, p.col) === goalKey)) return false;
+  if (lv.lava.some((p) => keyOf(p.row, p.col) === startKey)) return false;
+  if (lv.lava.some((p) => keyOf(p.row, p.col) === goalKey)) return false;
 
-  const lavaSet = new Set(lv.lava.map(p => keyOf(p.row, p.col)));
+  const blocked = new Set(lv.lava.map((p) => keyOf(p.row, p.col)));
 
-  // False goals also block the "winning" path (because hitting them is a failure)
-  if (lv.falseGoals) {
-    lv.falseGoals.forEach(p => lavaSet.add(keyOf(p.row, p.col)));
-  }
+  if (lv.falseGoals) lv.falseGoals.forEach((p) => blocked.add(keyOf(p.row, p.col)));
 
   const q = [{ row: lv.start.row, col: lv.start.col }];
   const seen = new Set([startKey]);
@@ -808,7 +756,7 @@ function isSolvable(lv) {
 
       const nk = keyOf(nr, nc);
       if (seen.has(nk)) continue;
-      if (lavaSet.has(nk)) continue;
+      if (blocked.has(nk)) continue;
 
       seen.add(nk);
       q.push({ row: nr, col: nc });
@@ -822,7 +770,6 @@ function isSolvable(lv) {
 // Difficulty modifier: procedural difficulty spike
 // ----------------
 function intensifyLevel(lvl) {
-  // Attempt to add N random lava tiles
   const attempts = 15;
   const targetAdditions = 3;
   let added = 0;
@@ -831,24 +778,20 @@ function intensifyLevel(lvl) {
     const r = Math.floor(Math.random() * 6) + 1;
     const c = Math.floor(Math.random() * 6) + 1;
 
-    // Don't overwrite start, goal, or existing lava
-    if ((r === lvl.start.row && c === lvl.start.col) ||
+    if (
+      (r === lvl.start.row && c === lvl.start.col) ||
       (r === lvl.goal.row && c === lvl.goal.col) ||
-      lvl.lava.some(l => l.row === r && l.col === c)) {
+      lvl.lava.some((l) => l.row === r && l.col === c)
+    ) {
       continue;
     }
 
-    // Speculatively add
     lvl.lava.push({ row: r, col: c });
 
-    // Verify if still solvable
-    if (isSolvable(lvl)) {
-      added++;
-    } else {
-      // Revert
-      lvl.lava.pop();
-    }
+    if (isSolvable(lvl)) added++;
+    else lvl.lava.pop();
   }
+
   console.log(`Hard Mode: Added ${added} extra lava tiles.`);
 }
 
@@ -857,10 +800,6 @@ function getManhattanDist(r1, c1, r2, c2) {
 }
 
 function addDecoys(lvl) {
-  // "Reachable by incomplete plans only"
-  // Logic: Place the decoy structurally closer to the start than the real goal.
-  // This simulates a plan that stops short or takes the "easy" early win.
-
   const startGoalDist = getManhattanDist(lvl.start.row, lvl.start.col, lvl.goal.row, lvl.goal.col);
 
   const attempts = 20;
@@ -868,124 +807,54 @@ function addDecoys(lvl) {
     const r = Math.floor(Math.random() * 6) + 1;
     const c = Math.floor(Math.random() * 6) + 1;
 
-    // Distance to this candidate
     const distToDecoy = getManhattanDist(lvl.start.row, lvl.start.col, r, c);
 
-    // CRITERIA:
-    // 1. Must be closer to start than the actual goal (Incomplete plan heuristic)
-    // 2. Must not be adjacent to start (too easy to spot)
     if (distToDecoy >= startGoalDist || distToDecoy < 2) continue;
 
-    // Standard collision checks
-    if ((r === lvl.start.row && c === lvl.start.col) ||
+    if (
+      (r === lvl.start.row && c === lvl.start.col) ||
       (r === lvl.goal.row && c === lvl.goal.col) ||
-      lvl.lava.some(l => l.row === r && l.col === c) ||
-      (lvl.triggers && lvl.triggers.some(t => t.row === r && t.col === c))) {
+      lvl.lava.some((l) => l.row === r && l.col === c) ||
+      (lvl.triggers && lvl.triggers.some((t) => t.row === r && t.col === c))
+    ) {
       continue;
     }
 
-    // Speculatively add
     lvl.falseGoals = lvl.falseGoals || [];
     lvl.falseGoals.push({ row: r, col: c });
 
-    // Verify Solvability (ensure we didn't block the ONLY path to real goal)
-    if (isSolvable(lvl)) {
-      console.log(`Added Incomplete Plan Decoy at (${r}, ${c}). Dist: ${distToDecoy} vs Goal: ${startGoalDist}`);
-      return; // Success, just one decoy
-    } else {
-      lvl.falseGoals.pop(); // Revert
-    }
+    if (isSolvable(lvl)) return;
+    lvl.falseGoals.pop();
   }
 }
 
 function addKey(lvl) {
-  // Place a key somewhere reasonably far from start
   const attempts = 50;
+
   for (let i = 0; i < attempts; i++) {
     const r = Math.floor(Math.random() * 6) + 1;
     const c = Math.floor(Math.random() * 6) + 1;
 
-    // Not on start/goal/lava
-    if ((r === lvl.start.row && c === lvl.start.col) ||
+    if (
+      (r === lvl.start.row && c === lvl.start.col) ||
       (r === lvl.goal.row && c === lvl.goal.col) ||
-      lvl.lava.some(l => l.row === r && l.col === c)) {
+      lvl.lava.some((l) => l.row === r && l.col === c)
+    ) {
       continue;
     }
 
-    // Speculate
     lvl.keyPos = { row: r, col: c };
     lvl.needsKey = true;
 
-    // Check 1: Start -> Key reachable?
     const keyReachable = isSolvable({ ...lvl, goal: lvl.keyPos });
-    // Check 2: Key -> Goal reachable?
     const goalReachable = isSolvable({ ...lvl, start: lvl.keyPos });
 
-    if (keyReachable && goalReachable) {
-      console.log(`Added Key at (${r}, ${c})`);
-      return; // Success
-    } else {
-      delete lvl.keyPos;
-      delete lvl.needsKey;
-    }
+    if (keyReachable && goalReachable) return;
+
+    delete lvl.keyPos;
+    delete lvl.needsKey;
   }
 }
-
-
-// ----------------
-// Paint level tiles (reusable)
-// ----------------
-function renderStaticElements() {
-  gridEl.querySelectorAll(".tile").forEach(t => {
-    t.classList.remove("lava", "wall", "start", "goal", "trigger", "fake-goal", "key", "locked");
-  });
-
-  // Paint triggers
-  if (level.triggers) {
-    level.triggers.forEach(({ row, col, active }) => {
-      if (active !== false) {
-        const t = tileAt(row, col);
-        if (t) t.classList.add("trigger");
-      }
-    });
-  }
-
-  // Paint lava
-  level.lava.forEach(({ row, col, hidden }) => {
-    if (hidden) return;
-    const t = tileAt(row, col);
-    if (t) {
-      t.classList.add("lava", "wall");
-    }
-  });
-
-  // Paint Key (if exists and needed)
-  if (level.needsKey && level.keyPos && !player.hasKey) {
-    const t = tileAt(level.keyPos.row, level.keyPos.col);
-    if (t) t.classList.add("key");
-  }
-
-  // Paint False Goals (visually identical to real goal, or slightly diff)
-  if (level.falseGoals) {
-    level.falseGoals.forEach(({ row, col }) => {
-      const t = tileAt(row, col);
-      // We add 'goal' class so it looks inviting
-      if (t) t.classList.add("goal", "fake-goal");
-    });
-  }
-
-  tileAt(level.start.row, level.start.col)?.classList.add("start");
-
-  const goalEl = tileAt(level.goal.row, level.goal.col);
-  if (goalEl) {
-    goalEl.classList.add("goal");
-    if (level.needsKey && !player.hasKey) {
-      goalEl.classList.add("locked");
-    }
-  }
-}
-
-// ... unchanged ...
 
 // ----------------
 // Generator: picks a template from the bank
@@ -995,32 +864,21 @@ function generateLevel(caseType) {
   const template = bank[Math.floor(Math.random() * bank.length)];
   const candidate = structuredClone(template);
 
-  // Level 4 Special: Random Illusions
+  // Level 4: Random Illusions
   if (caseType === 4) {
-    candidate.lava.forEach(l => {
-      if (!l.hidden && Math.random() < 0.3) {
-        l.fake = true;
-      }
+    candidate.lava.forEach((l) => {
+      if (!l.hidden && Math.random() < 0.3) l.fake = true;
     });
   }
 
-  // Apply Hard Mode
   const isHard = document.getElementById("hardModeToggle")?.checked;
-  if (isHard) {
-    intensifyLevel(candidate);
-  }
+  if (isHard) intensifyLevel(candidate);
 
-  // Apply Key Mode
   const needKey = document.getElementById("keyToggle")?.checked;
-  if (needKey) {
-    addKey(candidate);
-  }
+  if (needKey) addKey(candidate);
 
-  // Apply False Goals
   const hasDecoys = document.getElementById("decoyToggle")?.checked;
-  if (hasDecoys) {
-    addDecoys(candidate);
-  }
+  if (hasDecoys) addDecoys(candidate);
 
   if (!isSolvable(candidate)) {
     console.warn("Unsolvable level template; clearing lava as fallback.");
@@ -1039,12 +897,9 @@ function generateLevel(caseType) {
   updateMissionBrief(caseType);
 }
 
-// ... unchanged ...
-
 // ----------------
 // UI: Level Selector
 // ----------------
-const controlsArea = document.querySelector(".controls") || document.body;
 const selectorContainer = document.createElement("div");
 selectorContainer.style.marginBottom = "10px";
 selectorContainer.innerHTML = `
@@ -1061,7 +916,7 @@ selectorContainer.innerHTML = `
       </select>
       <button id="loadLevelBtn" class="btn primary">Load Level</button>
     </div>
-    
+
     <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 16px;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <input type="checkbox" id="hardModeToggle" style="width: 16px; height: 16px; cursor: pointer;">
@@ -1085,22 +940,22 @@ selectorContainer.innerHTML = `
   </div>
 `;
 
-// Insert at top of body for visibility
 document.body.insertBefore(selectorContainer, document.body.firstChild);
 
 document.getElementById("loadLevelBtn").addEventListener("click", () => {
   const val = document.getElementById("levelSelect").value;
-  generateLevel(parseInt(val));
+  generateLevel(parseInt(val, 10));
 });
 
 function updateMissionBrief(caseType) {
+  if (typeof LEVEL_DESCRIPTIONS === "undefined") return; // <-- stop the error
   const info = LEVEL_DESCRIPTIONS[caseType];
-  if (info) {
-    document.getElementById("briefTitle").textContent = info.title;
-    document.getElementById("briefGoal").textContent = info.goal;
-    document.getElementById("briefDesc").textContent = info.desc;
-  }
+  if (!info) return;
+  document.getElementById("briefTitle")?.textContent = info.title;
+  document.getElementById("briefGoal")?.textContent = info.goal;
+  document.getElementById("briefDesc")?.textContent = info.desc;
 }
+
 
 // ----------------
 // Init
