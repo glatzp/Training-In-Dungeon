@@ -386,7 +386,7 @@ function step() {
         // Visually reveal
         const t = tileAt(next.row, next.col);
         if (t) {
-          t.classList.add("lava", "wall");
+          paintLavaTile(t);
         }
 
         return { stop: `Stopped: Hidden Mine hit at (${next.row}, ${next.col})` };
@@ -427,7 +427,7 @@ function step() {
             // Animate appearance?
             const t = tileAt(pos.row, pos.col);
             if (t) {
-              t.classList.add("lava", "wall");
+              paintLavaTile(t);
               spawnParticles(t, ["#f59e0b", "#7f1d1d"], 20); // Poof effect
             }
           });
@@ -1019,17 +1019,17 @@ function addKey(lvl) {
 // Paint level tiles (reusable) — v2 (adds key, decoys, locked)
 // ----------------
 function renderStaticElements() {
- gridEl.querySelectorAll(".tile").forEach((t) => {
-  clearLavaTile(t); // <-- NEW (removes inline lava + icon)
-  t.classList.remove(
-    "start",
-    "goal",
-    "trigger",
-    "fake-goal",
-    "key",
-    "locked"
-  );
-});
+  gridEl.querySelectorAll(".tile").forEach((t) => {
+    clearLavaTile(t); // <-- NEW (removes inline lava + icon)
+    t.classList.remove(
+      "start",
+      "goal",
+      "trigger",
+      "fake-goal",
+      "key",
+      "locked"
+    );
+  });
 
 
   // Paint triggers
@@ -1047,7 +1047,7 @@ function renderStaticElements() {
     if (hidden) return;
     const t = tileAt(row, col);
     if (t) {
-      t.classList.add("lava", "wall");
+      paintLavaTile(t); // Use helper for inline styles + icon
     }
   });
 
