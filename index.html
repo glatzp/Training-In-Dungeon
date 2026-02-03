@@ -948,20 +948,14 @@ document.getElementById("loadLevelBtn").addEventListener("click", () => {
 });
 
 function updateMissionBrief(caseType) {
-  // Safe: won't crash if elements are missing
-  const info = LEVEL_DESCRIPTIONS?.[caseType];
+  if (typeof LEVEL_DESCRIPTIONS === "undefined") return; // <-- stop the error
+  const info = LEVEL_DESCRIPTIONS[caseType];
   if (!info) return;
-
-  const titleEl = document.getElementById("briefTitle");
-  const goalEl = document.getElementById("briefGoal");
-  const descEl = document.getElementById("briefDesc");
-
-  if (!titleEl || !goalEl || !descEl) return;
-
-  titleEl.textContent = info.title;
-  goalEl.textContent = info.goal;
-  descEl.textContent = info.desc;
+  document.getElementById("briefTitle")?.textContent = info.title;
+  document.getElementById("briefGoal")?.textContent = info.goal;
+  document.getElementById("briefDesc")?.textContent = info.desc;
 }
+
 
 // ----------------
 // Init
