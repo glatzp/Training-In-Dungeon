@@ -2,9 +2,13 @@
 
 *A constrained learning environment for planning-before-execution.*
 
-[Live Demo](https://glatzp.github.io/Training-In-Dungeon/)
+An instructional design artifact demonstrating how constrained environments can teach planning, execution, and revision through literal system behavior.
 
-![Training in Dungeon Screenshot]<img width="2500" height="1205" alt="Dungeon Screenshot" src="https://github.com/user-attachments/assets/a340aad2-5e8a-4c24-8451-58afe4ded2da" />
+## ▶ Try the Live Demo
+
+https://glatzp.github.io/Training-In-Dungeon/
+
+![Training in Dungeon Screenshot]<img width="2500" alt="Training in Dungeon Screenshot" src="...">
 
 
 ---
@@ -24,6 +28,15 @@ Unlike many educational tools, it deliberately removes hints, previews, and mid-
 Training in Dungeon
 
 A constrained learning environment for planning, execution, and judgment
+
+##Skills Demonstrated
+
+- Learning Experience Design
+- Instructional Design
+- Human-AI Interaction
+- Constraint-Based Learning
+- Educational Technology
+- JavaScript, HTML, CSS
 
 Why this project exists
 
