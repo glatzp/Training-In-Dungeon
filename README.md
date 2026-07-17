@@ -110,3 +110,7 @@ It is shared as a thinking artifact rather than as a finished curriculum or prod
 
 This project intentionally sits upstream of tools, platforms, and AI systems.
 Its purpose is to strengthen the planning and judgment habits those systems quietly depend on.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
