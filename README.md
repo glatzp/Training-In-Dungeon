@@ -1,3 +1,24 @@
+# Training in Dungeon
+
+*A constrained learning environment for planning-before-execution.*
+
+[Live Demo](https://glatzp.github.io/Training-In-Dungeon/)
+
+![Training in Dungeon Screenshot](docs/images/hero.png)
+
+---
+
+## What is this?
+
+Training in Dungeon is an interactive instructional environment that teaches learners to define intent, plan completely before acting, observe literal execution, and revise their thinking after failure.
+
+Unlike many educational tools, it deliberately removes hints, previews, and mid-run corrections so that planning—not reaction—becomes the focus.
+
+---
+
+## Learning Workflow
+
+[Workflow Graphic]
 Training in Dungeon
 
 A constrained learning environment for planning, execution, and judgment
