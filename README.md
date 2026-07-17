@@ -38,7 +38,7 @@ A constrained learning environment for planning, execution, and judgment
 - Educational Technology
 - JavaScript, HTML, CSS
 
-Why this project exists
+## Why this project exists
 
 Many discussions about AI, coding, and digital tools focus on what systems can produce.
 Far fewer address the upstream skills required to use those systems responsibly.
