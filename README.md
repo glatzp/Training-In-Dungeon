@@ -4,7 +4,8 @@
 
 [Live Demo](https://glatzp.github.io/Training-In-Dungeon/)
 
-![Training in Dungeon Screenshot](docs/images/hero.png)
+![Training in Dungeon Screenshot]<img width="2500" height="1205" alt="Dungeon Screenshot" src="https://github.com/user-attachments/assets/a340aad2-5e8a-4c24-8451-58afe4ded2da" />
+
 
 ---
 
