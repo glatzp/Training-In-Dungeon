@@ -29,7 +29,7 @@ Training in Dungeon
 
 A constrained learning environment for planning, execution, and judgment
 
-##Skills Demonstrated
+## Skills Demonstrated
 
 - Learning Experience Design
 - Instructional Design
