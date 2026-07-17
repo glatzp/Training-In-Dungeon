@@ -18,7 +18,7 @@ https://glatzp.github.io/Training-In-Dungeon/
 
 Training in Dungeon is an interactive instructional environment that teaches learners to define intent, plan completely before acting, observe literal execution, and revise their thinking after failure.
 
-Unlike many educational tools, it deliberately removes hints, previews, and mid-run corrections so that planning—not reaction—becomes the focus.
+Unlike many educational tools, it deliberately removes hints, previews, and mid-run corrections so that planning, and not reaction, becomes the focus.
 
 ---
 
@@ -47,7 +47,7 @@ Far fewer address the upstream skills required to use those systems responsibly.
 
 This project explores a simple but underdeveloped question:
 
-What happens when learners must commit to a plan before acting — and take responsibility for the outcome?
+What happens when learners must commit to a plan before acting and take responsibility for the outcome?
 
 Training in Dungeon removes hints, previews, and corrective scaffolds in order to make planning, failure, and revision visible. The goal is not engagement or efficiency, but judgment.
 
