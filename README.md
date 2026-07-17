@@ -8,7 +8,8 @@ An instructional design artifact demonstrating how constrained environments can 
 
 https://glatzp.github.io/Training-In-Dungeon/
 
-![Training in Dungeon Screenshot]<img width="2500" alt="Training in Dungeon Screenshot" src="...">
+![Training in Dungeon Screenshot]<img width="2500" height="1205" alt="Dungeon Screenshot" src="https://github.com/user-attachments/assets/53e92894-4cb7-4018-beb0-06a3fdeb4ba8" />
+
 
 
 ---
