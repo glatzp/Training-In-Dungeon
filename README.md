@@ -19,7 +19,8 @@ Unlike many educational tools, it deliberately removes hints, previews, and mid-
 
 ## Learning Workflow
 
-[Workflow Graphic]
+<img width="960" height="540" alt="Dungeon Workflow" src="https://github.com/user-attachments/assets/c371c874-19e0-4c58-80f1-15aab8134b05" />
+
 Training in Dungeon
 
 A constrained learning environment for planning, execution, and judgment
